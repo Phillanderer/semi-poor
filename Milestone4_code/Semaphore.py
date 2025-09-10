@@ -30,7 +30,7 @@ class Semaphore(object):
 #Constructor
 
     def __init__(self, n, simKernel):
-        # Initial count must be ≥ 0. For a mutex, pass 1.
+        # Initial count must be > ro = 0. For a mutex, pass 1.
         if n < 0:
             raise ValueError("Semaphore initial count must be ≥ 0")
         self.OS = simKernel
@@ -43,7 +43,7 @@ class Semaphore(object):
     def wait(self, caller):
         """
         WAIT (P/prolagen):
-          c ← c − 1
+          c <- c − 1
           if c < 0: enqueue caller and block
         """
         self.c -= 1
@@ -54,8 +54,8 @@ class Semaphore(object):
     def signal(self, caller):
         """
         SIGNAL (V/verhogen):
-          c ← c + 1
-          if c ≤ 0: dequeue one and wake it
+          c < c + 1
+          if c < or = 0: dequeue one and wake it
         """
         self.c += 1
         if self.c <= 0 and self.q:
