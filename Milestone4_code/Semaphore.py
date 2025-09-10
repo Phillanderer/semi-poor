@@ -59,6 +59,7 @@ class Semaphore(object):
         """
         SIGNAL (V/verhogen):
           c < c + 1
+          release lock
           if c < or = 0: dequeue one and wake it
         """
         self.c += 1
