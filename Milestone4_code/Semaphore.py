@@ -16,7 +16,7 @@
 # Invariant we rely on (D1):
 #   Let I be the initial count. For all reachable states:
 #       c = I − enter(S) − |q|
-#   and  c < 0  ⇔  |q| = −c
+#   and  c < 0  <->  |q| = −c
 #
 # Notes:
 #  • FIFO is implemented with a plain list (append, pop(0)).
