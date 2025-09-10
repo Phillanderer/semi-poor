@@ -9,61 +9,56 @@
 #
 # Thread counting semaphore.
 #
-# Kernel integration (provided by the simulator):
-#   self.OS.block(pid)  # move pid to blocked
-#   self.OS.wake(pid)   # make pid ready/runnable
-#
-# Invariant we rely on (D1):
-#   Let I be the initial count. For all reachable states:
-#       c = I − enter(S) − |q|
-#   and  c < 0  <->  |q| = −c
-#
-# Notes:
-#  • FIFO is implemented with a plain list (append, pop(0)).
-#  • This is a blocking semaphore, not a spinlock.
 ##############################################################################################
 #
 #
 class Semaphore(object):
-
-##########################################
-#Constructor
-
-    def __init__(self, n, simKernel):
-        # Initial count must be > or = 0. For a mutex, pass 1.
+    def __init__(self, n, OS):
+        """
+        n  : initial count (>= 0); for a mutex pass 1
+        OS : simulator OS interface providing:
+             - getQueue(), getAtomicLock(), wake(processName)
+        """
         if n < 0:
-            raise ValueError("Semaphore initial count must be > or = 0")
-        self.OS = simKernel
-        self.lock = simKernel.getAtomicLock()
-        self.c  = int(n)   # counter
-        self.q  = simKernel.getQueue    # FIFO of blocked PIDs
-
-##########################################
-#Instance Methods
+            raise ValueError("Semaphore initial count must be >= 0")
+        self.OS   = OS
+        self.c    = int(n)          # semaphore count
+        self.q    = OS.getQueue()   # OS-level shared FIFO of process names
+        self.lock = OS.getAtomicLock()  # hardware-backed recursive lock
 
     def wait(self, caller):
         """
         WAIT (P/prolagen):
-          c <- c − 1
-          if c < 0: enqueue caller and block
-          else acquire lock
+          c = c - 1
+          if c < 0: enqueue caller name and sleep
         """
-        self.c -= 1
-        if self.c <= 0:
-            self.q.put(caller)   # enqueue at tail
-            caller.sleep()  # simulator blocks caller
-        else:
-            self.lock.acquire(caller)
+        self.lock.acquire(caller)
+        try:
+            self.c -= 1
+            if self.c < 0:
+                # Enqueue BEFORE sleeping to avoid lost wakeups
+                self.q.put(caller.getName())
+                # Release the lock before sleeping so SIGNAL can make progress
+                self.lock.release(caller)
+                caller.sleep()
+                return
+        finally:
+            # If we did not sleep, release the lock here
+            if self.c >= 0:
+                self.lock.release(caller)
 
     def signal(self, caller):
         """
         SIGNAL (V/verhogen):
-          c < c + 1
-          release lock
-          if c < or = 0: dequeue one and wake it
+          c = c + 1
+          if c <= 0: dequeue one waiter (FIFO) and wake it
         """
-        self.c += 1
-        self.lock.release(caller)
-        if self.c <= 0 and self.q:
-            p = self.q.get()       # dequeue from head (FIFO)
-            self.OS.wake(p)         # simulator readies p
+        self.lock.acquire(caller)
+        try:
+            self.c += 1
+            if self.c <= 0:
+                # There must be a waiter; dequeue the oldest and wake it
+                proc_name = self.q.get()
+                self.OS.wake(proc_name)
+        finally:
+            self.lock.release(caller)
