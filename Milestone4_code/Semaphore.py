@@ -37,8 +37,7 @@ class Semaphore(object):
         self.lock.acquire(caller)
         try:
             self.OS.write(self.shared_mem_location, self.c -1)
-            #self.c -= 1
-            if self.c < 0:
+            if self.OS.read(self.shared_mem_location)  < 0:
                 # Enqueue BEFORE sleeping to avoid lost wakeups
                 self.q.put(caller.getName())
                 # Release the lock before sleeping so SIGNAL can make progress
