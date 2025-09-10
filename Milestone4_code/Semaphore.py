@@ -9,43 +9,53 @@
 #
 # Thread counting semaphore.
 #
-# Design notes:
-#  • WAIT decrements c; if c < 0, caller joins FIFO q and is blocked.
-#  • SIGNAL increments c; if c ≤ 0 and q nonempty, one waiting PID is woken.
-#  • FIFO on q matches the simulator’s fairness intent.
-#  • We intentionally avoid explicit SAVESW/LOADSW pseudo-ops; that context
-#    switching is provided by the simulator’s kernel hooks (block/wake).
+# Kernel integration (provided by the simulator):
+#   self.OS.block(pid)  # move pid to blocked
+#   self.OS.wake(pid)   # make pid ready/runnable
 #
-##############################################################################################
+# Invariant we rely on (D1):
+#   Let I be the initial count. For all reachable states:
+#       c = I − enter(S) − |q|
+#   and  c < 0  ⇔  |q| = −c
 #
+# Notes:
+#  • FIFO is implemented with a plain list (append, pop(0)).
+#  • This is a blocking semaphore, not a spinlock.
+
 class Semaphore(object):
+
+##########################################
+#Constructor
+
     def __init__(self, n, simKernel):
-        """
-        n: initial count (>= 0). For a mutex, pass 1.
-        simKernel: simulator kernel exposing block(pid) and wake(pid).
-        """
+        # Initial count must be ≥ 0. For a mutex, pass 1.
+        if n < 0:
+            raise ValueError("Semaphore initial count must be ≥ 0")
         self.OS = simKernel
-        self.c  = int(n)   # counting state; invariant below
+        self.c  = int(n)   # counter
         self.q  = []       # FIFO of blocked PIDs (head at index 0)
 
-        # Invariant: if initial count is I, then at any time
-        #   c = I - (#threads currently passed WAIT but not yet balanced by SIGNAL) - len(q)
-        # and c < 0  iff  there are |c| processes waiting in q.
+##########################################
+#Instance Methods
 
     def wait(self, caller):
         """
-        WAIT(S): c-- ; if c < 0 => enqueue caller and block
+        WAIT (P/prolagen):
+          c ← c − 1
+          if c < 0: enqueue caller and block
         """
         self.c -= 1
         if self.c < 0:
-            self.q.append(caller)       # attach(caller, S.q)
-            self.OS.block(caller)       # simulator handles context switch
+            self.q.append(caller)   # enqueue at tail
+            self.OS.block(caller)   # simulator blocks caller
 
     def signal(self, caller):
         """
-        SIGNAL(S): c++ ; if c ≤ 0 => dequeue one waiter and wake it
+        SIGNAL (V/verhogen):
+          c ← c + 1
+          if c ≤ 0: dequeue one and wake it
         """
         self.c += 1
         if self.c <= 0 and self.q:
-            p = self.q.pop(0)           # FIFO detach(S.q)
-            self.OS.wake(p)             # simulator readies p
+            p = self.q.pop(0)       # dequeue from head (FIFO)
+            self.OS.wake(p)         # simulator readies p
