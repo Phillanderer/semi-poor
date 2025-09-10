@@ -23,6 +23,8 @@ class Semaphore(object):
             raise ValueError("Semaphore initial count must be >= 0")
         self.OS   = OS
         self.c    = int(n)          # semaphore count
+        self.shared_mem_location = str(id(self.c))
+        self.OS.write(self.shared_mem_location, n)
         self.q    = OS.getQueue()   # OS-level shared FIFO of process names
         self.lock = OS.getAtomicLock()  # hardware-backed recursive lock
 
@@ -34,7 +36,8 @@ class Semaphore(object):
         """
         self.lock.acquire(caller)
         try:
-            self.c -= 1
+            self.OS.write(self.shared_mem_location, self.c -1)
+            #self.c -= 1
             if self.c < 0:
                 # Enqueue BEFORE sleeping to avoid lost wakeups
                 self.q.put(caller.getName())
@@ -44,7 +47,7 @@ class Semaphore(object):
                 return
         finally:
             # If we did not sleep, release the lock here
-            if self.c >= 0:
+            if self.OS.read(self.shared_mem_location) >= 0:
                 self.lock.release(caller)
 
     def signal(self, caller):
@@ -55,8 +58,8 @@ class Semaphore(object):
         """
         self.lock.acquire(caller)
         try:
-            self.c += 1
-            if self.c <= 0:
+            self.OS.write(self.shared_mem_location, self.c +1)
+            if self.OS.read(self.shared_mem_location) <= 0:
                 # There must be a waiter; dequeue the oldest and wake it
                 proc_name = self.q.get()
                 self.OS.wake(proc_name)
