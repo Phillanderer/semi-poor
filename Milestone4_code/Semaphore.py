@@ -34,8 +34,9 @@ class Semaphore(object):
         if n < 0:
             raise ValueError("Semaphore initial count must be > or = 0")
         self.OS = simKernel
+        self.lock = simKernel.getAtomicLock()
         self.c  = int(n)   # counter
-        self.q  = []       # FIFO of blocked PIDs
+        self.q  = simKernel.getQueue    # FIFO of blocked PIDs
 
 ##########################################
 #Instance Methods
@@ -45,11 +46,14 @@ class Semaphore(object):
         WAIT (P/prolagen):
           c <- c − 1
           if c < 0: enqueue caller and block
+          else acquire lock
         """
         self.c -= 1
-        if self.c < 0:
-            self.q.append(caller)   # enqueue at tail
-            self.OS.block(caller)   # simulator blocks caller
+        if self.c <= 0:
+            self.q.put(caller)   # enqueue at tail
+            caller.sleep()  # simulator blocks caller
+        else:
+            self.lock.acquire(caller)
 
     def signal(self, caller):
         """
@@ -58,6 +62,7 @@ class Semaphore(object):
           if c < or = 0: dequeue one and wake it
         """
         self.c += 1
+        self.lock.release(caller)
         if self.c <= 0 and self.q:
-            p = self.q.pop(0)       # dequeue from head (FIFO)
+            p = self.q.get()       # dequeue from head (FIFO)
             self.OS.wake(p)         # simulator readies p
