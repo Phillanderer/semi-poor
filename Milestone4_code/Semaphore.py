@@ -9,10 +9,6 @@
 #
 # Thread counting semaphore.
 #
-# Kernel hooks expected from SL_Kernel.pyc:
-#   - OS.block(pid): move caller to the blocked set / stop running it
-#   - OS.wake(pid):  move pid to ready/runnable
-#
 # Design notes:
 #  • WAIT decrements c; if c < 0, caller joins FIFO q and is blocked.
 #  • SIGNAL increments c; if c ≤ 0 and q nonempty, one waiting PID is woken.
