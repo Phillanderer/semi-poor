@@ -21,7 +21,9 @@
 # Notes:
 #  • FIFO is implemented with a plain list (append, pop(0)).
 #  • This is a blocking semaphore, not a spinlock.
-
+##############################################################################################
+#
+#
 class Semaphore(object):
 
 ##########################################
