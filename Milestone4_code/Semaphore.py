@@ -32,7 +32,7 @@ class Semaphore(object):
     def __init__(self, n, simKernel):
         # Initial count must be > ro = 0. For a mutex, pass 1.
         if n < 0:
-            raise ValueError("Semaphore initial count must be ≥ 0")
+            raise ValueError("Semaphore initial count must be > or = 0")
         self.OS = simKernel
         self.c  = int(n)   # counter
         self.q  = []       # FIFO of blocked PIDs (head at index 0)
