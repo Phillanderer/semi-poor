@@ -7,7 +7,8 @@
 # updated: 10 Sep 2024
 # Authors: Jordan Fok, Justin Phillips, and John Rolfe
 #
-# Single-kernel-thread counting semaphore for the simulator.
+# Thread counting semaphore.
+#
 # Kernel hooks expected from SL_Kernel.pyc:
 #   - OS.block(pid): move caller to the blocked set / stop running it
 #   - OS.wake(pid):  move pid to ready/runnable
@@ -18,8 +19,6 @@
 #  • FIFO on q matches the simulator’s fairness intent.
 #  • We intentionally avoid explicit SAVESW/LOADSW pseudo-ops; that context
 #    switching is provided by the simulator’s kernel hooks (block/wake).
-#    (Notation: this differs in wording from Denning’s pseudo-code; semantics
-#     are equivalent for a single-threaded kernel.)  [line-level notation]
 #
 ##############################################################################################
 #
@@ -33,7 +32,7 @@ class Semaphore(object):
         self.c  = int(n)   # counting state; invariant below
         self.q  = []       # FIFO of blocked PIDs (head at index 0)
 
-        # Invariant (informal): if initial count is I, then at any time
+        # Invariant: if initial count is I, then at any time
         #   c = I - (#threads currently passed WAIT but not yet balanced by SIGNAL) - len(q)
         # and c < 0  iff  there are |c| processes waiting in q.
 
