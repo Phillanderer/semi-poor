@@ -62,7 +62,6 @@ class Semaphore(object):
             proc_name = self.q.get()               # dequeue oldest waiting process
             self.lock.release(caller)              # release lock before wake
             self.OS.wake(proc_name)                # wake the dequeued process
-            caller.slp_yield()                     # yield CPU so woken process can run
             return
         else:                                      # if no waiting processes
             self.lock.release(caller)              # just release lock
