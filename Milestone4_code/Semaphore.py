@@ -50,9 +50,9 @@ class Semaphore(object):
                 # only release if we did not already release before sleeping
                 self.lock.release(caller)
 
-    def signal(self, caller):
+    def signal(self, caller): # SIGNAL operation on semaphore
         """
-        SIGNAL (V/verhogen): # SIGNAL operation on semaphore
+        SIGNAL (V/verhogen): 
           c = c + 1
           if c <= 0: dequeue one waiter (FIFO) and wake it
         """
