@@ -71,13 +71,11 @@ class ATMServer(mp.Process):
                 current_balance = self.OS.read(self.account)    # Read current balance
                 
                 if amount != 0:                                 # Apply transaction (deposit/withdrawal) or just inquiry
-                    new_balance = current_balance + amount
-                    self.OS.write(self.account, new_balance)
+                    current_balance = current_balance + amount
+                    self.OS.write(self.account, current_balance)
                 
-                else:
-                    new_balance = current_balance               # Balance inquiry - no change
                 self.semaphore.signal(self)                     # Exit critical section
-                msg = ATMMessage.wrap(BALANCE, new_balance)     # Send balance back to ATM
+                msg = ATMMessage.wrap(BALANCE, current_balance)     # Send balance back to ATM
                 self.atm_connection.send(msg)
                 
             else:
