@@ -44,14 +44,11 @@ class ATM(mp.Process):
             #select deposit or withdrawal amount
             transactionAmount = int(random.random() * 300)
 
-            balance = self.__recieveBalance__()
             pull = random.random()
             if pull < 0.2:     #check balance
                 # Send APPLY with 0 for balance inquiry
                 transactionAmount = 0
-            if balance == SHUTDOWN:
-                break
-            print(self.clientName + ' balance inquiry: ' + str(balance) + '\n', end='')
+
 
             if pull < 0.6:   #withdrawal
                 transactionAmount = -transactionAmount
@@ -67,7 +64,11 @@ class ATM(mp.Process):
             if balance == SHUTDOWN:
                 break
 
-            print(self.clientName + ' transaction for: ' + str(transactionAmount) + ', balance of: ' + str(balance) + '\n', end='')
+            if transactionAmount == 0:
+                print(self.clientName + ' balance inquiry: ' + str(balance) + '\n', end='')
+            else:
+                print(self.clientName + ' transaction for: ' + str(transactionAmount) + ', balance of: ' + str(balance) + '\n', end='')
+                
             self.transactionTotal += transactionAmount
 
         print('   ATM machine', self.clientName, 'shutting down; transaction total was:', self.transactionTotal)
