@@ -44,32 +44,31 @@ class ATM(mp.Process):
             #select deposit or withdrawal amount
             transactionAmount = int(random.random() * 300)
 
+            balance = self.__recieveBalance__()
             pull = random.random()
             if pull < 0.2:     #check balance
                 # Send APPLY with 0 for balance inquiry
-                self.atm_connection.send(ATMMessage.wrap(APPLY, 0))
-                balance = self.__recieveBalance__()
-                if balance == SHUTDOWN:
-                    break
-                print(self.clientName + ' balance inquiry: ' + str(balance) + '\n', end='')
+                transactionAmount = 0
+            if balance == SHUTDOWN:
+                break
+            print(self.clientName + ' balance inquiry: ' + str(balance) + '\n', end='')
 
-            else:
-                if pull < 0.6:   #withdrawal
-                    transactionAmount = -transactionAmount
-                else:            #deposit
-                    pass
+            if pull < 0.6:   #withdrawal
+                transactionAmount = -transactionAmount
+            else:            #deposit
+                pass
 
-                # Send single atomic APPLY with transaction amount
-                self.atm_connection.send(ATMMessage.wrap(APPLY, transactionAmount))
-                
-                # Receive the new balance after transaction
-                balance = self.__recieveBalance__()
-                
-                if balance == SHUTDOWN:
-                    break
+            # Send single atomic APPLY with transaction amount
+            self.atm_connection.send(ATMMessage.wrap(APPLY, transactionAmount))
+            
+            # Receive the new balance after transaction
+            balance = self.__recieveBalance__()
+            
+            if balance == SHUTDOWN:
+                break
 
-                print(self.clientName + ' transaction for: ' + str(transactionAmount) + ', balance of: ' + str(balance) + '\n', end='')
-                self.transactionTotal += transactionAmount
+            print(self.clientName + ' transaction for: ' + str(transactionAmount) + ', balance of: ' + str(balance) + '\n', end='')
+            self.transactionTotal += transactionAmount
 
         print('   ATM machine', self.clientName, 'shutting down; transaction total was:', self.transactionTotal)
 
